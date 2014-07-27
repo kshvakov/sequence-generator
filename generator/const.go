@@ -7,7 +7,7 @@ import (
 const (
 	dataLogFormat    string      = "%s %d"
 	maxDataLogSize   int         = 10000
-	permissions      os.FileMode = 0755
+	permissions      os.FileMode = 0750
 	dataFileName                 = "data.gob"
 	snapshotFileName             = "snapshot.gob"
 	logFileName                  = "sequence-generator.log"

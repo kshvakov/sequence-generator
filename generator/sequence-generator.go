@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	logPath   string
 	errorLog  *log.Logger
 	infoLog   *log.Logger
 	systemLog *log.Logger
@@ -52,21 +53,30 @@ func (sequence *SequenceGenerator) new() {
 		os.Interrupt,
 		syscall.SIGTERM,
 		syscall.SIGKILL,
+		syscall.SIGHUP,
 	)
 
 	go func() {
 
-		<-signalChan
+		switch <-signalChan {
 
-		if err := sequence.stop(); err != nil {
+		case syscall.SIGHUP:
 
-			errorLog.Print(err.Error())
+			openLog()
+
+		default:
+
+			if err := sequence.stop(); err != nil {
+
+				errorLog.Print(err.Error())
+			}
+
+			os.Exit(1)
+
 		}
-
-		os.Exit(1)
 	}()
 
-	go sequence.flushLog()
+	go sequence.flushDataLog()
 
 	sequence.load()
 }
@@ -199,7 +209,7 @@ func (sequence *SequenceGenerator) Add(key string, value uint) error {
 
 	defer sequence.actionMutex.Unlock()
 
-	if _, exists := sequence.counter[key]; exists {
+	if _, exist := sequence.counter[key]; exist {
 
 		return fmt.Errorf("key \"%s\" is exists", key)
 	}
@@ -230,7 +240,7 @@ func (sequence *SequenceGenerator) addLog(key string, value uint) error {
 
 	if sequence.logSizeCounter >= maxDataLogSize {
 
-		if err := sequence.rotateLog(); err != nil {
+		if err := sequence.rotateDataLog(); err != nil {
 
 			return err
 		}
@@ -248,7 +258,7 @@ func (sequence *SequenceGenerator) addLog(key string, value uint) error {
 	return nil
 }
 
-func (sequence *SequenceGenerator) rotateLog() error {
+func (sequence *SequenceGenerator) rotateDataLog() error {
 
 	sequence.currentLogNum++
 	sequence.logSizeCounter = 0
@@ -282,7 +292,7 @@ func (sequence *SequenceGenerator) rotateLog() error {
 	return nil
 }
 
-func (sequence *SequenceGenerator) flushLog() {
+func (sequence *SequenceGenerator) flushDataLog() {
 
 	for logFilePath := range sequence.flushChan {
 
@@ -368,6 +378,19 @@ func offset(value uint, increment uint, offset uint) uint {
 	return offset + (value * increment)
 }
 
+func openLog() {
+
+	file, _ := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, permissions)
+
+	mw := io.MultiWriter(os.Stdout, file)
+
+	errorLog = log.New(mw, "Error: ", log.LstdFlags)
+
+	infoLog = log.New(mw, "Info: ", log.LstdFlags)
+
+	systemLog = log.New(file, "", log.LstdFlags)
+}
+
 // NewGenerator constructor
 //
 //  generator := NewGenerator(Options{
@@ -379,15 +402,9 @@ func offset(value uint, increment uint, offset uint) uint {
 //
 func NewGenerator(options Options) *SequenceGenerator {
 
-	file, _ := os.OpenFile(options.LogDir+logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, permissions)
+	logPath = options.LogDir + logFileName
 
-	mw := io.MultiWriter(file, os.Stdout)
-
-	errorLog = log.New(mw, "Error: ", log.LstdFlags)
-
-	infoLog = log.New(mw, "Info: ", log.LstdFlags)
-
-	systemLog = log.New(file, "", log.LstdFlags)
+	openLog()
 
 	if options.Offset > options.Increment {
 
