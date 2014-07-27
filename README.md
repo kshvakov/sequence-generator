@@ -45,14 +45,73 @@ Sequence generator
 
 ./rest-api-server -increment=4 -offset=1
 
+values:
+
+5
+9
+13
+17
+21
+25
+29
+33
+37
+41
+45
+...
+
 #server_b
 ./rest-api-server -increment=4 -offset=2
+
+values:
+
+6
+10
+14
+18
+22
+26
+30
+34
+38
+42
+46
+...
 
 #server_c
 ./rest-api-server -increment=4 -offset=3
 
+values:
+
+7
+11
+15
+19
+23
+27
+31
+35
+39
+43
+47
+...
+
 #server_d
 ./rest-api-server -increment=4 -offset=4
 
+values:
+
+8
+12
+16
+20
+24
+28
+32
+36
+40
+44
+48
+...
 
 ```
