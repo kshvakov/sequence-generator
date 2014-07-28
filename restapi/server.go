@@ -31,7 +31,7 @@ func sequence(writer http.ResponseWriter, request *http.Request) {
 
 			log.Print(err.Error())
 
-			responseError(writer, err.Error(), http.StatusMethodNotAllowed)
+			responseError(writer, err.Error(), http.StatusOK)
 
 			return
 		}
