@@ -25,91 +25,6 @@ var (
 	stat              *Stat
 )
 
-func sequence(writer http.ResponseWriter, request *http.Request) {
-
-	key, err := getKey(request.URL.Path)
-
-	if err != nil {
-
-		log.Print(err.Error())
-
-		sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
-
-		return
-	}
-
-	switch request.Method {
-
-	case "GET":
-
-		stat.add("get")
-
-		if value, err := sequenceGenerator.Get(key); err == nil {
-
-			fmt.Fprint(writer, response{Key: key, Value: value})
-		} else {
-
-			log.Print(err.Error())
-
-			sendInternalServerErrorResponse(writer)
-		}
-
-	case "PUT":
-
-		stat.add("add")
-
-		body, err := ioutil.ReadAll(request.Body)
-
-		if err != nil {
-
-			log.Print(err.Error())
-
-			sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
-
-			return
-		}
-
-		value, err := strconv.ParseUint(string(body), 10, 0)
-
-		if err != nil {
-
-			log.Print(err.Error())
-
-			sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
-
-			return
-		}
-
-		if err := sequenceGenerator.Add(key, uint(value)); err != nil {
-			log.Print(err.Error())
-
-			sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
-
-			return
-		}
-
-		writer.WriteHeader(http.StatusCreated)
-
-		fmt.Fprint(writer, response{Key: key, Value: uint(value)})
-
-	default:
-		sendErrorResponse(writer, "405 method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func statistics(writer http.ResponseWriter, request *http.Request) {
-
-	if result, err := stat.getStat(); err == nil {
-
-		fmt.Fprint(writer, result)
-	} else {
-
-		log.Print(err.Error())
-
-		sendInternalServerErrorResponse(writer)
-	}
-}
-
 func NewServer(httpAddr string, increment uint, offset uint, dataDir string, logDir string) {
 
 	file, _ := os.OpenFile(logDir+logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, permissions)
@@ -148,6 +63,84 @@ func NewServer(httpAddr string, increment uint, offset uint, dataDir string, log
 	log.Fatal(httpServer.ListenAndServe())
 }
 
+func sequence(writer http.ResponseWriter, request *http.Request) {
+
+	key, err := getKey(request.URL.Path)
+
+	if err != nil {
+
+		sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
+
+		return
+	}
+
+	switch request.Method {
+
+	case "GET":
+
+		stat.add("get")
+
+		if value, err := sequenceGenerator.Get(key); err == nil {
+
+			fmt.Fprint(writer, response{Key: key, Value: value})
+		} else {
+
+			log.Print(err.Error())
+
+			sendInternalServerErrorResponse(writer)
+		}
+
+	case "PUT":
+
+		stat.add("add")
+
+		body, err := ioutil.ReadAll(request.Body)
+
+		if err != nil {
+
+			sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		value, err := strconv.ParseUint(string(body), 10, 0)
+
+		if err != nil {
+
+			sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		if err := sequenceGenerator.Add(key, uint(value)); err != nil {
+
+			sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		writer.WriteHeader(http.StatusCreated)
+
+		fmt.Fprint(writer, response{Key: key, Value: uint(value)})
+
+	default:
+		sendErrorResponse(writer, "405 method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func statistics(writer http.ResponseWriter, request *http.Request) {
+
+	if result, err := stat.getStat(); err == nil {
+
+		fmt.Fprint(writer, result)
+	} else {
+
+		log.Print(err.Error())
+
+		sendInternalServerErrorResponse(writer)
+	}
+}
+
 func handle(function func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
@@ -183,6 +176,8 @@ func getKey(urlPath string) (string, error) {
 }
 
 func sendErrorResponse(writer http.ResponseWriter, errorString string, code int) {
+
+	log.Print(errorString)
 
 	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	writer.WriteHeader(code)
