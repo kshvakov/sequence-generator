@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"github.com/kshvakov/sequence-generator/generator"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 	//"os"
-	//	"io/ioutil"
+	"io/ioutil"
 	"net/http"
 	//	_ "net/http/pprof" // debug
 )
@@ -25,18 +26,18 @@ func sequence(writer http.ResponseWriter, request *http.Request) {
 
 	case "GET":
 
+		stat.add("get")
+
 		key, err := getKey(request.URL.Path)
 
 		if err != nil {
 
 			log.Print(err.Error())
 
-			responseError(writer, err.Error(), http.StatusOK)
+			sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
 
 			return
 		}
-
-		stat.add("get")
 
 		if value, err := sequenceGenerator.Get(key); err == nil {
 
@@ -45,12 +46,58 @@ func sequence(writer http.ResponseWriter, request *http.Request) {
 
 			log.Print(err.Error())
 
-			responseError(writer, "500 Internal Server Error", http.StatusInternalServerError)
+			sendErrorResponse(writer, "500 Internal Server Error", http.StatusInternalServerError)
 		}
 
 	case "PUT":
+
+		stat.add("add")
+
+		key, err := getKey(request.URL.Path)
+
+		if err != nil {
+
+			log.Print(err.Error())
+
+			sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		body, err := ioutil.ReadAll(request.Body)
+
+		if err != nil {
+
+			log.Print(err.Error())
+
+			sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		value, err := strconv.ParseUint(string(body), 10, 0)
+
+		if err != nil {
+
+			log.Print(err.Error())
+
+			sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		if err := sequenceGenerator.Add(key, uint(value)); err != nil {
+			log.Print(err.Error())
+
+			sendErrorResponse(writer, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		fmt.Fprint(writer, response{Key: key, Value: uint(value)})
+
 	default:
-		responseError(writer, "405 method not allowed", http.StatusMethodNotAllowed)
+		sendErrorResponse(writer, "405 method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
@@ -79,7 +126,7 @@ func statistics(writer http.ResponseWriter, request *http.Request) {
 
 		log.Print(err.Error())
 
-		responseError(writer, "500 Internal Server Error", http.StatusInternalServerError)
+		sendErrorResponse(writer, "500 Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
@@ -101,7 +148,7 @@ func NewServer(httpAddr string, increment uint, offset uint, dataDir string, log
 	}
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		responseError(writer, "404 method not found", http.StatusNotFound)
+		sendErrorResponse(writer, "404 method not found", http.StatusNotFound)
 	})
 
 	http.HandleFunc("/ping/", func(writer http.ResponseWriter, request *http.Request) {
@@ -127,7 +174,7 @@ func handle(function func(http.ResponseWriter, *http.Request)) func(http.Respons
 
 				log.Printf("panic: %v", panic)
 
-				responseError(writer, "500 Internal Server Error", http.StatusInternalServerError)
+				sendErrorResponse(writer, "500 Internal Server Error", http.StatusInternalServerError)
 			}
 		}()
 
@@ -135,7 +182,7 @@ func handle(function func(http.ResponseWriter, *http.Request)) func(http.Respons
 	}
 }
 
-func responseError(writer http.ResponseWriter, errorString string, code int) {
+func sendErrorResponse(writer http.ResponseWriter, errorString string, code int) {
 
 	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	writer.WriteHeader(code)
