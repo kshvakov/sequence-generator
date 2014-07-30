@@ -1,7 +1,7 @@
 package restapi
 
 type Options struct {
-	HttpAddr  string
+	HTTPAddr  string
 	Increment uint
 	Offset    uint
 	DataDir   string

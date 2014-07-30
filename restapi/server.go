@@ -55,7 +55,7 @@ func NewServer(options Options) {
 	})
 
 	httpServer := &http.Server{
-		Addr:         options.HttpAddr,
+		Addr:         options.HTTPAddr,
 		ReadTimeout:  time.Duration(options.Timeout) * time.Second,
 		WriteTimeout: time.Duration(options.Timeout) * time.Second,
 	}
@@ -74,7 +74,7 @@ func NewServer(options Options) {
 	http.HandleFunc("/stat/", handle(statistics))
 	http.HandleFunc("/sequence/", handle(sequence))
 
-	log.Printf("ListenAndServe on: %s", options.HttpAddr)
+	log.Printf("ListenAndServe on: %s", options.HTTPAddr)
 
 	log.Fatal(httpServer.ListenAndServe())
 }

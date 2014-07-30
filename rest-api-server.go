@@ -22,7 +22,7 @@ func main() {
 	flag.Parse()
 
 	restapi.NewServer(restapi.Options{
-		HttpAddr:  *httpAddr,
+		HTTPAddr:  *httpAddr,
 		Increment: *increment,
 		Offset:    *offset,
 		DataDir:   *dataDir,
