@@ -16,34 +16,48 @@ import (
 )
 
 const (
-	logFileName             = "rest-api-server.log"
-	permissions os.FileMode = 0750
+	defaultTimeout             = 10
+	logFileName                = "rest-api-server.log"
+	permissions    os.FileMode = 0750
 )
 
 var (
 	sequenceGenerator *generator.SequenceGenerator
+	systemLog         *log.Logger
 	stat              *Stat
 )
 
-func NewServer(httpAddr string, increment uint, offset uint, dataDir string, logDir string) {
+func NewServer(options Options) {
 
-	file, _ := os.OpenFile(logDir+logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, permissions)
+	if options.Timeout == 0 {
+		options.Timeout = defaultTimeout
+	}
 
-	log.SetOutput(io.MultiWriter(os.Stdout, file))
+	file, err := os.OpenFile(options.LogDir+logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, permissions)
+
+	if err != nil {
+
+		log.Fatalf("Culd not open log %s", options.LogDir+logFileName)
+	} else {
+
+		log.SetOutput(io.MultiWriter(os.Stdout, file))
+
+		systemLog = log.New(file, "", log.LstdFlags)
+	}
 
 	stat = NewStat()
 
 	sequenceGenerator = generator.NewGenerator(generator.Options{
-		Increment: increment,
-		Offset:    offset,
-		DataDir:   dataDir,
-		LogDir:    logDir,
+		Increment: options.Increment,
+		Offset:    options.Offset,
+		DataDir:   options.DataDir,
+		LogDir:    options.LogDir,
 	})
 
 	httpServer := &http.Server{
-		Addr:         httpAddr,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		Addr:         options.HTTPAddr,
+		ReadTimeout:  time.Duration(options.Timeout) * time.Second,
+		WriteTimeout: time.Duration(options.Timeout) * time.Second,
 	}
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
@@ -59,6 +73,8 @@ func NewServer(httpAddr string, increment uint, offset uint, dataDir string, log
 
 	http.HandleFunc("/stat/", handle(statistics))
 	http.HandleFunc("/sequence/", handle(sequence))
+
+	log.Printf("ListenAndServe on: %s", options.HTTPAddr)
 
 	log.Fatal(httpServer.ListenAndServe())
 }
@@ -85,7 +101,7 @@ func sequence(writer http.ResponseWriter, request *http.Request) {
 			fmt.Fprint(writer, response{Key: key, Value: value})
 		} else {
 
-			log.Print(err.Error())
+			systemLog.Print(err.Error())
 
 			sendInternalServerErrorResponse(writer)
 		}
@@ -135,7 +151,7 @@ func statistics(writer http.ResponseWriter, request *http.Request) {
 		fmt.Fprint(writer, result)
 	} else {
 
-		log.Print(err.Error())
+		systemLog.Print(err.Error())
 
 		sendInternalServerErrorResponse(writer)
 	}
@@ -149,7 +165,7 @@ func handle(function func(http.ResponseWriter, *http.Request)) func(http.Respons
 
 			if panic := recover(); panic != nil {
 
-				log.Printf("panic: %v", panic)
+				systemLog.Printf("panic: %v", panic)
 
 				sendInternalServerErrorResponse(writer)
 			}
@@ -177,7 +193,7 @@ func getKey(urlPath string) (string, error) {
 
 func sendErrorResponse(writer http.ResponseWriter, errorString string, code int) {
 
-	log.Print(errorString)
+	systemLog.Print(errorString)
 
 	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	writer.WriteHeader(code)

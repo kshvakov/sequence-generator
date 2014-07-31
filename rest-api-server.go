@@ -12,6 +12,7 @@ var (
 	dataDir   = flag.String("data_dir", "/var/sequence-generator/", "usage")
 	increment = flag.Uint("increment", 1, "")
 	offset    = flag.Uint("offset", 0, "")
+	timeout   = flag.Uint("timeout", 10, "")
 )
 
 func main() {
@@ -20,5 +21,12 @@ func main() {
 
 	flag.Parse()
 
-	restapi.NewServer(*httpAddr, *increment, *offset, *dataDir, *logDir)
+	restapi.NewServer(restapi.Options{
+		HTTPAddr:  *httpAddr,
+		Increment: *increment,
+		Offset:    *offset,
+		DataDir:   *dataDir,
+		LogDir:    *logDir,
+		Timeout:   *timeout,
+	})
 }

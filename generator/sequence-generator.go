@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/gob"
 	"fmt"
-	"github.com/kshvakov/hlp/fs"
 	"io"
 	"io/ioutil"
 	"log"
@@ -83,7 +82,7 @@ func (sequence *SequenceGenerator) new() {
 
 func (sequence *SequenceGenerator) load() {
 
-	if fs.IsNotExist(sequence.dataLogDirPath) {
+	if IsNotExist(sequence.dataLogDirPath) {
 
 		infoLog.Printf("%s: %s", "Create log dir", sequence.dataLogDirPath)
 
@@ -100,7 +99,7 @@ func (sequence *SequenceGenerator) load() {
 		dataFile *os.File
 	)
 
-	if fs.IsExist(sequence.dataFilePath) {
+	if IsExist(sequence.dataFilePath) {
 
 		dataFile, err = os.Open(sequence.dataFilePath)
 
@@ -411,12 +410,12 @@ func NewGenerator(options Options) *SequenceGenerator {
 		errorLog.Fatalf("Offset can not be greater than Increment (%d > %d)", options.Offset, options.Increment)
 	}
 
-	if !fs.IsDir(options.DataDir) {
+	if !IsDir(options.DataDir) {
 
 		errorLog.Fatalf("Data dir %s is not exist", options.DataDir)
 	}
 
-	if !fs.IsDir(options.LogDir) {
+	if !IsDir(options.LogDir) {
 
 		errorLog.Fatalf("Log dir %s is not exist", options.LogDir)
 	}
