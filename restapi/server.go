@@ -37,7 +37,7 @@ func NewServer(options Options) {
 
 	if err != nil {
 
-		log.Fatalf("Culd not open log %s", options.LogDir+logFileName)
+		log.Fatalf("Could not open log %s", options.LogDir+logFileName)
 	} else {
 
 		log.SetOutput(io.MultiWriter(os.Stdout, file))
