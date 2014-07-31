@@ -4,18 +4,14 @@ import (
 	"os"
 )
 
-func IsDir(name string) bool {
+func isDir(name string) bool {
 
 	fileInfo, err := os.Stat(name)
 
 	return err == nil && fileInfo.IsDir()
 }
 
-func IsExist(name string) bool {
-	return !(IsNotExist(name))
-}
-
-func IsNotExist(name string) bool {
+func isNotExist(name string) bool {
 
 	_, err := os.Stat(name)
 

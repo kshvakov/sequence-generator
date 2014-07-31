@@ -82,7 +82,7 @@ func (sequence *SequenceGenerator) new() {
 
 func (sequence *SequenceGenerator) load() {
 
-	if IsNotExist(sequence.dataLogDirPath) {
+	if isNotExist(sequence.dataLogDirPath) {
 
 		infoLog.Printf("%s: %s", "Create log dir", sequence.dataLogDirPath)
 
@@ -99,15 +99,14 @@ func (sequence *SequenceGenerator) load() {
 		dataFile *os.File
 	)
 
-	if IsExist(sequence.dataFilePath) {
-
-		dataFile, err = os.Open(sequence.dataFilePath)
-
-	} else {
+	if isNotExist(sequence.dataFilePath) {
 
 		infoLog.Printf("Create data file: %s", sequence.dataFilePath)
 
 		dataFile, err = os.Create(sequence.dataFilePath)
+	} else {
+
+		dataFile, err = os.Open(sequence.dataFilePath)
 	}
 
 	defer dataFile.Close()
@@ -410,12 +409,12 @@ func NewGenerator(options Options) *SequenceGenerator {
 		errorLog.Fatalf("Offset can not be greater than Increment (%d > %d)", options.Offset, options.Increment)
 	}
 
-	if !IsDir(options.DataDir) {
+	if !isDir(options.DataDir) {
 
 		errorLog.Fatalf("Data dir %s is not exist", options.DataDir)
 	}
 
-	if !IsDir(options.LogDir) {
+	if !isDir(options.LogDir) {
 
 		errorLog.Fatalf("Log dir %s is not exist", options.LogDir)
 	}

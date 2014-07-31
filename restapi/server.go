@@ -74,7 +74,7 @@ func NewServer(options Options) {
 	http.HandleFunc("/stat/", handle(statistics))
 	http.HandleFunc("/sequence/", handle(sequence))
 
-	log.Printf("ListenAndServe on: %s", options.HTTPAddr)
+	log.Printf("Starting server at: %s", options.HTTPAddr)
 
 	log.Fatal(httpServer.ListenAndServe())
 }
